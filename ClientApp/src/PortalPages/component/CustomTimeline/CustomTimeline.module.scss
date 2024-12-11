@@ -1,0 +1,36 @@
+.customTimeline {
+  position: relative;
+  display: flex;
+  .TimelineTail {
+    border: 1px solid #d9d9d9;
+    margin: 0 32px 0 9px;
+  }
+  .TimelineIcon {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    ::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 20px;
+      transform: translateY(-1px);
+      height: 2px;
+      width: 24px;
+      background-color: #d9d9d9;
+    }
+  }
+  .TimelineItem {
+    width: 500px;
+    border: 1px solid #d9d9d9;
+    border-radius: 6px;
+    .title {
+      padding: 12px 16px;
+      border-bottom: 1px solid #d9d9d9;
+      font-weight: 700;
+    }
+    .content {
+      padding: 12px 16px;
+    }
+  }
+}

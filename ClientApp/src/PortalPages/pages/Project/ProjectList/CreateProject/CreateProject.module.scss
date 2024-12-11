@@ -1,0 +1,13 @@
+.bottomButton {
+  display: flex;
+  gap: 16px;
+  padding: 16px 32px;
+  background-color: #f8fbfe;
+  :global {
+    .ant-btn {
+      height: 40px;
+      padding: 0 20px;
+      font-weight: 600;
+    }
+  }
+}

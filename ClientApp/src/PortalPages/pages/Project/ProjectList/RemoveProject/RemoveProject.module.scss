@@ -1,0 +1,21 @@
+.customPanel {
+  :global {
+    .ant-drawer-footer {
+      padding: 16px 24px;
+    }
+    .ant-form-item-label {
+      font-weight: 600;
+    }
+  }
+  .bottomButton {
+    display: flex;
+    gap: 16px;
+    :global {
+      .ant-btn {
+        height: 40px;
+        padding: 0 20px;
+        font-weight: 600;
+      }
+    }
+  }
+}

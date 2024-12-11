@@ -1,0 +1,19 @@
+.header {
+    display: flex;
+    justify-content: space-between;
+    .filter {
+        display: flex;
+        gap: 16px;
+
+        :global {
+            .ant-input {
+                height: 40px;
+            }
+
+            .ant-btn {
+                height: 40px;
+                width: 40px;
+            }
+        }
+    }
+}

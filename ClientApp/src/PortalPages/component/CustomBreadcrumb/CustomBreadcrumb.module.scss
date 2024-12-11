@@ -1,0 +1,12 @@
+.customBreadcrumb {
+  &:hover {
+    cursor: pointer;
+    text-decoration: underline;
+  }
+}
+
+.defaultBreadcrumb {
+  &:hover {
+    cursor: pointer;
+  }
+}

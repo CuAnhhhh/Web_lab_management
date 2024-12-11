@@ -1,0 +1,43 @@
+.customCalendar {
+  :global {
+    .ant-picker-calendar-date-value {
+      font-size: 16px;
+      font-weight: 600;
+    }
+    .ant-picker-panel .ant-picker-body th {
+      font-weight: 600;
+    }
+  }
+}
+.dateSelector {
+  display: flex;
+  justify-content: end;
+  padding: 16px 16px 8px;
+  gap: 16px;
+
+  :global {
+    .ant-select-selector {
+      padding: 0 18px !important;
+    }
+    .ant-select-selection-item {
+      font-weight: 600;
+    }
+  }
+  .yearHeader {
+    border: 1px solid #d9d9d9;
+    background: #ffffff;
+    border-radius: 6px;
+    padding: 0 18px;
+    align-content: center;
+    font-weight: 600;
+  }
+}
+
+.schedulerDetail {
+  margin-left: 8px;
+  padding: 0 16px 16px;
+  min-width: 400px;
+  background-color: #ffffff;
+  max-height: 785px;
+  overflow-y: auto;
+}

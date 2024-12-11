@@ -1,0 +1,23 @@
+.customModal {
+  :global {
+    .ant-modal-header {
+      padding-bottom: 8px;
+      border-bottom: 1px solid #d9d9d9;
+    }
+    .ant-modal-body {
+        padding-top: 8px;
+    }
+    .ant-modal-footer {
+      display: flex;
+      gap: 16px;
+      justify-content: end;
+      :global {
+        .ant-btn {
+          height: 38px;
+          padding: 0 20px;
+          font-weight: 600;
+        }
+      }
+    }
+  }
+}

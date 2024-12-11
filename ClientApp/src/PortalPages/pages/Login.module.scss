@@ -1,0 +1,21 @@
+
+.formLogin {
+    width: 600px;
+    padding: 32px;
+    border: 1px solid #d9d9d9;
+    border-radius: 6px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    :global {
+      .ant-form-item-label {
+        font-weight: 600;
+      }
+      .commonButton {
+        height: 40px;
+        padding: 0 20px;
+        font-weight: 600;
+      }
+    }
+  }

@@ -1,0 +1,16 @@
+.fileUpload {
+  :global {
+    .ant-upload-list-item-actions {
+      padding-right: 8px;
+      .ant-btn {
+        height: 36px !important;
+        width: 36px !important;
+      }
+    }
+    .commonButton {
+      height: 40px;
+      padding: 0 20px;
+      font-weight: 600;
+    }
+  }
+}

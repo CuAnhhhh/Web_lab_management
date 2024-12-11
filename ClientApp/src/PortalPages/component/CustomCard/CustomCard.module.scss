@@ -1,0 +1,27 @@
+.CustomCard {
+  padding: 8px 0;
+
+  .CustomCardHeader {
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 1px solid #d7dee5;
+
+    .CustomCardTitle {
+      font-size: 18px;
+      font-weight: 600;
+      border-bottom: 4px solid;
+      padding: 8px;
+    }
+    .CustomCardButton {
+      display: flex;
+      font-size: 18px;
+      padding: 8px 0;
+    }
+    .cyanBorder {
+      border-bottom-color: #0c7d8f;
+    }
+    .grayBorder {
+      border-bottom-color: #d7dee5;
+    }
+  }
+}

@@ -1,0 +1,17 @@
+.customText {
+  padding: 2px 0;
+  display: flex;
+  flex: 0 0 50%;
+
+  .customTextLabel {
+    min-width: 150px;
+    padding: 8px;
+    background-color: #eaeff4;
+    font-weight: 600;
+  }
+  .customTextChildren {
+    min-width: 150px;
+    padding: 8px;
+    white-space: pre-wrap;
+  }
+}
