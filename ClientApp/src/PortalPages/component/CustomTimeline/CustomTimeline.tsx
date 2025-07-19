@@ -1,6 +1,7 @@
 import style from "./CustomTimeline.module.scss";
 
 export interface ICustomTimeline {
+  id?: string;
   icon?: React.ReactNode;
   title?: React.ReactNode;
   content?: React.ReactNode;

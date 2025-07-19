@@ -19,6 +19,7 @@ import {
   TemplateDetail,
 } from "./TemplateDetail/TemplateDetail";
 import { ITemplateFormRef, TemplateForm } from "./TemplateForm/TemplateForm";
+import { useLoading } from "src/PortalPages/component/CustomLoading/CustomLoading";
 
 const TemplateList = () => {
   const TemplateFormRef = useRef<ITemplateFormRef>(null);
@@ -27,20 +28,32 @@ const TemplateList = () => {
     useState<Template.TemplateListModel[]>();
   const [reload, setReload] = useState(false);
   const [openModal, setOpenModal] = useState(false);
+  const { openLoading, closeLoading } = useLoading();
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalRecord, setTotalRecord] = useState(0);
   const [templateSelect, setTemplateSelect] =
     useState<Template.TemplateListModel>();
+  const userData = JSON.parse(localStorage.getItem("userData") ?? "null");
 
-  const trigger = () => setReload(!reload);
+  const trigger = () => {
+    setCurrentPage(1);
+    setReload(!reload);
+  };
 
   useEffect(() => {
     getTemplateListFucntion();
-  }, [reload]);
+  }, [reload, currentPage]);
 
   const getTemplateListFucntion = async () => {
     try {
-      const result = await getTemplateList();
+      openLoading();
+      const result = await getTemplateList({
+        currentPage: currentPage,
+        projectId: userData?.projectId
+      });
       if (result?.isDone) {
         setTemplateList(result?.templateList);
+        setTotalRecord(result?.total ?? 0);
       }
     } catch (e) {
       notification.open({
@@ -48,10 +61,12 @@ const TemplateList = () => {
         type: "error",
       });
     }
+    closeLoading();
   };
 
   const deleteTemplateFunction = async () => {
     try {
+      openLoading();
       const result = await deleteTemplate(templateSelect?.templateId ?? "");
       if (result?.isDone) {
         notification.open({
@@ -67,6 +82,7 @@ const TemplateList = () => {
         type: "error",
       });
     }
+    closeLoading();
   };
 
   const columns: TableProps<Template.TemplateListModel>["columns"] = [
@@ -88,15 +104,18 @@ const TemplateList = () => {
     {
       title: "Created by",
       key: "createdby",
-      render: (_, record) => <div>{record?.createdBy ?? "Admin"}</div>,
+      render: (_, record) => <div>{record?.createdByName ?? "Admin"}</div>,
     },
     {
       title: "Created date",
       key: "createddate",
       render: (_, record) => (
-        <div>{dayjs(record?.createdDate).format("DD/MMM/YYYY")}</div>
+        <div>{dayjs(record?.createdDate).format("DD/MMM/YYYY HH:mm")}</div>
       ),
     },
+  ];
+
+  const actionColumn: TableProps<Template.TemplateListModel>["columns"] = [
     {
       title: "Action",
       key: "action",
@@ -110,6 +129,13 @@ const TemplateList = () => {
                 setTemplateSelect(record);
                 TemplateFormRef?.current?.openPanel(record?.templateId);
               }}
+              style={{
+                display:
+                  userData.studentId == "0" ||
+                  record?.createdBy == userData.studentId
+                    ? undefined
+                    : "none",
+              }}
             />
           </CustomTooltip>
           <CustomTooltip content="Delete">
@@ -120,6 +146,13 @@ const TemplateList = () => {
                 setTemplateSelect(record);
                 setOpenModal(true);
               }}
+              style={{
+                display:
+                  userData.studentId == "0" ||
+                  record?.createdBy == userData.studentId
+                    ? undefined
+                    : "none",
+              }}
             />
           </CustomTooltip>
         </div>
@@ -129,21 +162,31 @@ const TemplateList = () => {
 
   return (
     <div className="tablePadding">
-      <div style={{ display: "flex", gap: 8 }}>
-        <Button
-          icon={<PlusCircleOutlined />}
-          onClick={() => TemplateFormRef?.current?.openPanel()}
-          className="commonButton"
-          type="text"
-        >
-          Add a template
-        </Button>
-      </div>
+      {userData?.isLeader && (
+        <div style={{ display: "flex", gap: 8 }}>
+          <Button
+            icon={<PlusCircleOutlined />}
+            onClick={() => TemplateFormRef?.current?.openPanel()}
+            className="commonButton"
+            type="text"
+          >
+            Add a template
+          </Button>
+        </div>
+      )}
       <Table
-        columns={columns}
+        columns={userData?.isLeader ? columns.concat(actionColumn) : columns}
         dataSource={templateList}
         className="borderTable"
         rowKey={(record) => record.templateId ?? ""}
+        pagination={{
+          current: currentPage,
+          pageSize: 10,
+          total: totalRecord,
+          simple: true,
+          onChange: (page) => setCurrentPage(page),
+        }}
+        scroll={{ x: "max-content" }}
       />
       <TemplateDetail ref={TemplateDetailRef} template={templateSelect} />
       <TemplateForm
@@ -168,10 +211,10 @@ const TemplateList = () => {
           {templateSelect?.description}
         </CustomText>
         <CustomText label="Created by">
-          {templateSelect?.createdBy ?? "Admin"}
+          {templateSelect?.createdByName ?? "Admin"}
         </CustomText>
         <CustomText label="Created at">
-          {dayjs(templateSelect?.createdDate).format("DD/MMM/YYYY")}
+          {dayjs(templateSelect?.createdDate).format("DD/MMM/YYYY HH:mm")}
         </CustomText>
       </CustomModal>
     </div>

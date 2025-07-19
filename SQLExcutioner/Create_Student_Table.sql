@@ -1,0 +1,17 @@
+CREATE TABLE Students (
+    StudentId varchar(36),
+    HustId int,
+    StudentName varchar(100),
+    Email varchar(100),
+    Address varchar(100),
+    PhoneNumber varchar(100),
+	Nationality int,
+	Gender bit,
+	StudentRole varchar(36),
+	Status int,
+	InProject bit,
+	CreatedDate datetime,
+	CreatedBy varchar(36),
+	RemovedDate datetime,
+	RemovedBy varchar(36),
+);

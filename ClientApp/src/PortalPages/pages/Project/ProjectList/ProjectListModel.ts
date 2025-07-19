@@ -31,3 +31,9 @@ export interface IOptionType {
   label: string;
   value: number;
 }
+
+export interface IOption {
+  label?: string;
+  value: string;
+  isAlert?: boolean;
+}

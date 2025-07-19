@@ -23,6 +23,8 @@ export namespace Student {
   }
 
   export interface ProjectHistoryModel {
+    relationshipId?: string;
+    projectId?: string;
     projectName?: string;
     onGoing?: boolean;
     createdDate?: string;
@@ -31,6 +33,15 @@ export namespace Student {
     removedBy?: string;
     isLeader?: boolean;
     status?: number;
+    collaboration?: boolean;
+    reportCount?: number;
+    projectCreatedDate?: string;
+  }
+
+  export interface GetStudentListModel {
+    status?: string;
+    currentPage?: number;
+    studentRole?: string;
   }
 
   export interface StudentDetailModelResponse {
@@ -50,13 +61,24 @@ export namespace Student {
     total?: number;
     isDone?: boolean;
     error?: string;
-    projectId?: string;
-    isLeader?: boolean;
   }
 
   export interface StudentIdModel {
     studentId?: string;
     studentName?: string;
+  }
+
+  export interface GetMemberModel {
+    studentId?: string;
+    currentPage?: number;
+    projectId?: string;
+    filter?: string;
+  }
+
+  export interface DeleteStudentModel {
+    studentId?: string;
+    removedDate?: string;
+    removedBy?: string;
   }
 
   export interface StudentIdModelResponse {
@@ -69,9 +91,27 @@ export namespace Student {
   export interface RelationshipStudentModel {
     relationshipId?: string;
     studentId?: string;
+    studentName?: string;
     projectId?: string;
     isLeader?: boolean;
     createdDate?: string;
     createdBy?: string;
+    removedDate?: string;
+    removedBy?: string;
+    status?: number;
+  }
+
+  export interface StudentReportModel extends StudentListModel {
+    projectName?: string;
+    projectId?: string;
+    createdByName?: string;
+  }
+
+  export interface StudentReportModelResponse {
+    studentList?: StudentReportModel[];
+    total?: number;
+    totalMember?: number;
+    isDone?: boolean;
+    error?: string;
   }
 }

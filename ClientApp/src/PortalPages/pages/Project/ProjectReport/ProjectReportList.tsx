@@ -1,84 +1,116 @@
-import { EditOutlined, PlusCircleOutlined } from "@ant-design/icons";
-import { Button, Input, Select, Table, TableProps } from "antd";
-import { DefaultOptionType } from "antd/es/select";
+import { FormOutlined } from "@ant-design/icons";
+import { Button, notification, Table, TableProps } from "antd";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { getReportList } from "src/PortalPages/api/ReportApi";
+import { useLoading } from "src/PortalPages/component/CustomLoading/CustomLoading";
 import CustomTooltip from "src/PortalPages/component/CustomTooltip/CustomTooltip";
-import style from "./ProjectReportList.module.scss";
-import { IReportList } from "./ProjectReportListModel";
+import { Student } from "src/PortalPages/model/StudentModel";
 
 const ProjectReportList = () => {
-  const currentWeek = [1, 2, 3, 4, 5, 6, 7];
   const navigate = useNavigate();
-  const selectOption: DefaultOptionType[] = currentWeek.map((item) => ({
-    label: item,
-    value: item,
-  }));
+  const { openLoading, closeLoading } = useLoading();
+  const [studentList, setStudentList] =
+    useState<Student.StudentReportModel[]>();
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalRecord, setTotalRecord] = useState(0);
+  const userData = JSON.parse(localStorage.getItem("userData") ?? "null");
 
-  const columns: TableProps<IReportList>["columns"] = [
+  useEffect(() => {
+    getReportListFucntion();
+  }, [currentPage]);
+
+  const getReportListFucntion = async () => {
+    try {
+      openLoading();
+      const result = await getReportList(currentPage);
+      if (result?.isDone) {
+        setStudentList(result?.studentList);
+        setTotalRecord(result?.total ?? 0);
+      }
+    } catch (e) {
+      notification.open({
+        message: "Something went wrong",
+        type: "warning",
+      });
+    }
+    closeLoading();
+  };
+
+  const columns: TableProps<Student.StudentReportModel>["columns"] = [
     {
-      title: "Project",
-      key: "project",
-      render: (_, record) => <Button type="text">{record?.project}</Button>,
-    },
-    {
-      title: "Leader name",
+      title: "Student name",
       key: "name",
-      render: (_, record) => <div>{record?.name}</div>,
+      render: (_, record) => (
+        <CustomTooltip content={record?.studentName} maxWidth={200} />
+      ),
     },
     {
-      title: "Report week",
-      key: "reportWeek",
-      render: (_, record) => <div>{record?.reportWeek}</div>,
+      title: "Hust ID",
+      key: "hustID",
+      render: (_, record) => <div>{record?.hustId}</div>,
     },
     {
-      title: "Report date",
-      key: "reportDate",
-      render: (_, record) => <div>{record?.createDate}</div>,
+      title: "Phone Number",
+      key: "phonenumber",
+      render: (_, record) => <div>{record?.phoneNumber}</div>,
+    },
+    {
+      title: "Email",
+      key: "email",
+      render: (_, record) => <div>{record?.email}</div>,
+    },
+    {
+      title: "Project Name",
+      key: "projectName",
+      render: (_, record) => (
+        <CustomTooltip content={record?.projectName} maxWidth={200} />
+      ),
     },
     {
       title: "Action",
       key: "action",
-      render: () => (
-        <CustomTooltip content="Edit">
-          <Button icon={<EditOutlined />} type="text" />
-        </CustomTooltip>
+      render: (_, record) => (
+        <div
+          style={{
+            display:
+              record?.studentId == userData?.studentId ||
+              userData?.studentId == "0"
+                ? undefined
+                : "none",
+          }}
+        >
+          <CustomTooltip content="Edit report">
+            <Button
+              icon={<FormOutlined />}
+              type="text"
+              onClick={() =>
+                navigate(
+                  `/project/project-report-detail/?projectId=${record?.projectId}`
+                )
+              }
+            />
+          </CustomTooltip>
+        </div>
       ),
     },
   ];
 
   return (
     <div className="tablePadding">
-      <div className={style.header}>
-        <Button
-          icon={<PlusCircleOutlined />}
-          className="commonButton"
-          type="text"
-        >
-          Add a report
-        </Button>
-        <div className={style.filter}>
-          <Select
-            style={{ width: 130, height: 40 }}
-            showSearch
-            placeholder="Select a week"
-            filterOption={(input, option) => {
-              if (option?.label && typeof option?.label === "string") {
-                return (option?.label ?? "")
-                  .toLowerCase()
-                  .includes(input.toLowerCase());
-              }
-              return false;
-            }}
-            options={selectOption}
-          />
-          <Input.Search style={{ height: 40, width: 200 }} />
-        </div>
-      </div>
       <Table
         columns={columns}
-        dataSource={[]}
+        dataSource={studentList}
         className="borderTable"
-        rowKey={(record) => record.id ?? ""}
+        rowKey={(record) => record.studentId ?? ""}
+        pagination={{
+          current: currentPage,
+          pageSize: 10,
+          total: totalRecord,
+          simple: true,
+          onChange: (page) => setCurrentPage(page),
+        }}
+        scroll={{ x: "max-content" }}
       />
     </div>
   );

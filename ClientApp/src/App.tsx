@@ -1,13 +1,14 @@
-import { Layout } from "antd";
+import { Layout, notification } from "antd";
+import dayjs from "dayjs";
+import { useEffect } from "react";
 import { BrowserRouter } from "react-router-dom";
 import style from "./App.module.scss";
 import CustomBreadcrumb from "./PortalPages/component/CustomBreadcrumb/CustomBreadcrumb";
-import CustomLoading from "./PortalPages/component/CustomLoading/CustomLoading";
+import { LoadingProvider } from "./PortalPages/component/CustomLoading/CustomLoading";
 import LeftNav from "./PortalPages/component/LeftNav/LeftNav";
 import UserAccount from "./PortalPages/component/UserAccount/UserAccount";
-import CustomRouter from "./PortalPages/pages/Router";
 import Login from "./PortalPages/pages/Login";
-import { useEffect } from "react";
+import CustomRouter from "./PortalPages/pages/Router";
 
 const { Content, Sider } = Layout;
 
@@ -20,25 +21,49 @@ const App = () => {
     }
   }, []);
 
+  // useEffect(() => {
+  //   if (!!userData && JSON.parse(userData)?.studentId != "0") {
+  //     const [_, cookieValue] = document.cookie.split("=");
+  //     if (dayjs().diff(cookieValue, "minute") >= 5) {
+  //       localStorage.clear();
+  //       window.history.pushState(null, "", "/login");
+  //       notification.open({
+  //         message: "Please login again to use system",
+  //         type: "warning",
+  //       });
+  //     }
+
+  //     setTimeout(() => {
+  //       localStorage.clear();
+  //       window.history.pushState(null, "", "/login");
+  //       notification.open({
+  //         message: "Please login again to use system",
+  //         type: "warning",
+  //       });
+  //     }, 5 * 60 * 1000);
+  //   }
+  // }, []);
+
   return (
-    <Layout style={{ height: "100vh" }}>
-      {userData ? (
-        <BrowserRouter>
-          <Sider className={style.appSider}>
-            <div className="demo-logo-vertical" />
-            <LeftNav />
-          </Sider>
-          <Content className={style.appContent}>
-            <CustomBreadcrumb />
-            <UserAccount />
-            <CustomLoading />
-            <CustomRouter />
-          </Content>
-        </BrowserRouter>
-      ) : (
-        <Login />
-      )}
-    </Layout>
+    <LoadingProvider>
+      <Layout style={{ height: "100vh" }}>
+        {userData ? (
+          <BrowserRouter>
+            <Sider className={style.appSider}>
+              <div className="demo-logo-vertical" />
+              <LeftNav />
+            </Sider>
+            <Content className={style.appContent}>
+              <CustomBreadcrumb />
+              <UserAccount />
+              <CustomRouter />
+            </Content>
+          </BrowserRouter>
+        ) : (
+          <Login />
+        )}
+      </Layout>
+    </LoadingProvider>
   );
 };
 

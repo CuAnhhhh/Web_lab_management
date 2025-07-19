@@ -2,7 +2,7 @@ import axios from "axios";
 import { Scheduler } from "../model/SchedulerModel";
 import { Common } from "../model/CommonModel";
 
-const api = "https://localhost:7051";
+const api = "http://26.243.146.110:7051";
 
 export async function getSchedulers(
   studentId: string
@@ -17,5 +17,12 @@ export async function createScheduler(
   model: Scheduler.SchedulerModel
 ): Promise<Common.ResponseModel> {
   const response = await axios.post(`${api}/scheduler/createscheduler`, model);
+  return response.data;
+}
+
+export async function deleteScheduler(
+  model: Scheduler.SchedulerModel
+): Promise<Common.ResponseModel> {
+  const response = await axios.post(`${api}/scheduler/deletescheduler`, model);
   return response.data;
 }

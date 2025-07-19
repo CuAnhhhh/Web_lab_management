@@ -1,9 +1,15 @@
-import { DeleteOutlined, MehOutlined, PlusOutlined } from "@ant-design/icons";
+import {
+  DeleteOutlined,
+  ExclamationCircleFilled,
+  InfoCircleOutlined,
+  MehOutlined,
+  PlusOutlined,
+} from "@ant-design/icons";
 import { Button, Form, Input, notification, Radio, Select } from "antd";
 import dayjs from "dayjs";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getProjectTypeList } from "src/PortalPages/api/ConfigurationApi";
+import { getProjectTypeIdList } from "src/PortalPages/api/ConfigurationApi";
 import { createProject } from "src/PortalPages/api/ProjectApi";
 import { getStudentIdList } from "src/PortalPages/api/StudentApi";
 import {
@@ -11,26 +17,29 @@ import {
   FileUploadPropsRef,
 } from "src/PortalPages/component/UploadSupport/FileUpload";
 import { Project } from "src/PortalPages/model/ProjectModel";
-import { IOptionType } from "../ProjectListModel";
+import { IOption, IOptionType } from "../ProjectListModel";
 import style from "./CreateProject.module.scss";
+import { useLoading } from "src/PortalPages/component/CustomLoading/CustomLoading";
+import CustomTooltip from "src/PortalPages/component/CustomTooltip/CustomTooltip";
+import CustomModal from "src/PortalPages/component/CustomModal/CustomModal";
 
 const CreateProject = () => {
   const [form] = Form.useForm();
   const navigate = useNavigate();
-  const urlQuery = new URLSearchParams(location.search);
-  const projectId = urlQuery.get("projectId") ?? "";
   const [collaboration, setCollaboration] = useState<boolean>(false);
   const [sameName, setSameName] = useState<boolean>(false);
+  const [showAlert, setShowAlert] = useState<boolean>();
   const [maximumCount, setMaximumCount] = useState<number>(0);
-  const [projectType, setProjectType] =
-    useState<{ label?: string; value: string }[]>();
-  const [listStudents, setListStudents] =
-    useState<{ label?: string; value: string }[]>();
+  const [projectType, setProjectType] = useState<IOption[]>();
+  const [listStudents, setListStudents] = useState<IOption[]>();
   const [listSelectedStudents, setListSelectedStudents] = useState<string[]>([
     "",
   ]);
-  const userData = JSON.parse(localStorage.getItem("userData") ?? "");
+  const userData = JSON.parse(localStorage.getItem("userData") ?? "null");
   const uploadRef = useRef<FileUploadPropsRef>(null);
+  const { openLoading, closeLoading } = useLoading();
+  const [onChangeForm, setOnChangeForm] = useState<boolean>(false);
+  const [openModal, setOpenModal] = useState<boolean>(false);
 
   const maximum: IOptionType[] = [...Array(14).keys()].map((item) => ({
     label: `${item + 1}`,
@@ -39,6 +48,7 @@ const CreateProject = () => {
 
   const getListStudents = async () => {
     try {
+      openLoading();
       const result = await getStudentIdList();
       if (result?.isDone) {
         setListStudents(
@@ -54,16 +64,19 @@ const CreateProject = () => {
         type: "warning",
       });
     }
+    closeLoading();
   };
 
-  const getListProjectRole = async () => {
+  const getListProjectType = async () => {
     try {
-      const result = await getProjectTypeList();
+      openLoading();
+      const result = await getProjectTypeIdList();
       if (result?.isDone) {
         setProjectType(
           result?.projectTypeList?.map((item) => ({
             label: item?.projectTypeName,
             value: item?.projectTypeId ?? "",
+            isAlert: !item?.isWeeklyReport,
           }))
         );
       }
@@ -73,16 +86,21 @@ const CreateProject = () => {
         type: "warning",
       });
     }
+    closeLoading();
   };
 
   useEffect(() => {
     getListStudents();
-    getListProjectRole();
+    getListProjectType();
   }, []);
 
   useEffect(() => {
     sameName && form.validateFields(["projectName"]);
   }, [sameName]);
+
+  useEffect(() => {
+    maximumCount && form.validateFields(["membersList"]);
+  }, [maximumCount]);
 
   const submitForm = async () => {
     const model: Project.ProjectCreateModel = {
@@ -99,6 +117,7 @@ const CreateProject = () => {
     };
 
     try {
+      openLoading();
       const result = await createProject(model);
       if (result?.isDone) {
         await uploadRef?.current?.uploadFuntion(result?.id ?? "");
@@ -117,6 +136,7 @@ const CreateProject = () => {
         type: "error",
       });
     }
+    closeLoading();
   };
 
   const getListOption = (index: number) => {
@@ -131,9 +151,24 @@ const CreateProject = () => {
   };
 
   const onRenderMemberList = () => (
-    <div style={{ border: "1px solid #d9d9d9", padding: 16, marginBottom: 16 }}>
-      <Form.List name="membersList">
-        {(fields, { add, remove }) => (
+    <div className={style.formList}>
+      <Form.List
+        name="membersList"
+        rules={[
+          {
+            validator: async (_, members) => {
+              if (members?.length > maximumCount) {
+                return Promise.reject(
+                  new Error(
+                    "There is more member than the total member of the project. Please remove some member!"
+                  )
+                );
+              }
+            },
+          },
+        ]}
+      >
+        {(fields, { add, remove }, { errors }) => (
           <>
             <Form.Item>
               <Button
@@ -155,16 +190,19 @@ const CreateProject = () => {
             )}
             {fields.map((field, index) => (
               <Form.Item
-                label={
-                  <div>
-                    <span style={{ color: "#ff4d4f", marginRight: 4 }}>*</span>
-                    {`Member number ${index + 1}`}
-                  </div>
-                }
+                name={`MemberSelect${index}`}
+                label={`Member number ${index + 1}`}
                 rules={[
                   {
-                    required: true,
-                    message: "Please select the collaboration member!",
+                    validator: async () => {
+                      if (listSelectedStudents[index + 1] == "") {
+                        return Promise.reject(
+                          new Error(
+                            "Please select the collaboration member or remove this field!"
+                          )
+                        );
+                      }
+                    },
                   },
                 ]}
                 key={field.key}
@@ -173,7 +211,9 @@ const CreateProject = () => {
                   options={getListOption(index + 1)}
                   style={{ width: 500, height: 40 }}
                   placeholder="Select a name"
-                  onChange={(value: string) => onSelectOption(value, index + 1)}
+                  onChange={(value: string) => {
+                    onSelectOption(value, index + 1);
+                  }}
                 />
                 <Button
                   onClick={() => {
@@ -188,6 +228,7 @@ const CreateProject = () => {
                 />
               </Form.Item>
             ))}
+            <Form.ErrorList errors={errors} />
           </>
         )}
       </Form.List>
@@ -205,7 +246,7 @@ const CreateProject = () => {
             message: "Please input the project name!",
           },
           {
-            validator: () => {
+            validator: async () => {
               if (sameName) {
                 return Promise.reject(
                   new Error("There is a project with the same name!")
@@ -217,16 +258,26 @@ const CreateProject = () => {
         ]}
       >
         <Input
-          style={{ height: 40 }}
+          size="large"
           placeholder="Input a name"
           onChange={() => sameName && setSameName(false)}
         />
       </Form.Item>
       <Form.Item label="Description" name="description">
-        <Input.TextArea rows={5} style={{ resize: "none" }} />
+        <Input.TextArea
+          rows={5}
+          style={{ resize: "none" }}
+          onBlur={(e) =>
+            form.setFieldValue("description", e.target.value.trim())
+          }
+        />
       </Form.Item>
       <Form.Item
-        label="Project type"
+        label={
+          <div style={{ display: "flex", gap: 8 }}>
+            Project type {showAlert && onRenderAlert()}
+          </div>
+        }
         name="projectType"
         rules={[
           {
@@ -237,15 +288,28 @@ const CreateProject = () => {
       >
         <Select
           options={projectType}
-          style={{ height: 40 }}
+          size="large"
           placeholder="Select a type"
+          onChange={(_, option) => {
+            setShowAlert((option as IOption)?.isAlert);
+          }}
         />
       </Form.Item>
     </>
   );
 
+  const onRenderAlert = () => (
+    <CustomTooltip
+      content={
+        "This project type is not a weekly type, student can create report when it needed"
+      }
+    >
+      <InfoCircleOutlined style={{ color: "red", cursor: "pointer" }} />
+    </CustomTooltip>
+  );
+
   const onRenderCollaboration = () => (
-    <div>
+    <>
       <Form.Item
         label="Collaboration preference"
         name="collaboration"
@@ -263,10 +327,9 @@ const CreateProject = () => {
             onClick={() => {
               setCollaboration(false);
               setListSelectedStudents([""]);
-              form.setFieldValue("header", undefined);
+              form.resetFields(["leader"]);
               if (collaboration && maximumCount) {
-                form.setFieldValue("membersList", undefined);
-                form.setFieldValue("maxCount", undefined);
+                form.resetFields(["maxCount", "membersList"]);
                 setMaximumCount(0);
               }
             }}
@@ -278,7 +341,7 @@ const CreateProject = () => {
             onClick={() => {
               setCollaboration(true);
               setListSelectedStudents([""]);
-              form.setFieldValue("header", undefined);
+              form.resetFields(["leader"]);
             }}
           >
             Group
@@ -286,16 +349,37 @@ const CreateProject = () => {
         </Radio.Group>
       </Form.Item>
       <div style={{ display: "flex", gap: 64 }}>
-        <Form.Item label="Header" name="header">
+        <Form.Item
+          label={collaboration ? "Leader" : "Participant"}
+          name="leader"
+          rules={[
+            {
+              required: true,
+              message: `Please select the project ${
+                collaboration ? "leader" : "Participant"
+              }!`,
+            },
+          ]}
+        >
           <Select
             options={getListOption(0)}
             style={{ width: 300, height: 40 }}
             placeholder="Select a student"
+            allowClear
             onChange={(value: string) => onSelectOption(value, 0)}
           />
         </Form.Item>
         {collaboration && (
-          <Form.Item label="Maximum membership count" name="maxCount">
+          <Form.Item
+            label="Maximum membership count"
+            name="maxCount"
+            rules={[
+              {
+                required: true,
+                message: "Please select the maximum member!",
+              },
+            ]}
+          >
             <Select
               options={maximum}
               style={{ width: 300, height: 40 }}
@@ -305,13 +389,18 @@ const CreateProject = () => {
           </Form.Item>
         )}
       </div>
-    </div>
+    </>
   );
 
   return (
     <>
       <div className="WLM_FormLayout">
-        <Form form={form} layout="vertical" onFinish={submitForm}>
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={submitForm}
+          onChange={() => setOnChangeForm(true)}
+        >
           {onRenderInformation()}
           {onRenderCollaboration()}
           {collaboration && onRenderMemberList()}
@@ -319,9 +408,31 @@ const CreateProject = () => {
             <FileUpload serviceType="projects" ref={uploadRef} />
           </Form.Item>
         </Form>
+        <CustomModal
+          title={
+            <div>
+              <ExclamationCircleFilled style={{ color: "#08c" }} /> Discard
+              change
+            </div>
+          }
+          open={openModal}
+          onOk={() => navigate(`/project/project-list`)}
+          onCancel={() => setOpenModal(false)}
+        >
+          <div style={{ fontWeight: 600, paddingBottom: 16 }}>
+            Do you want to cancel create project. All infomation will be
+            removed!
+          </div>
+        </CustomModal>
       </div>
       <div className={style.bottomButton}>
-        <Button onClick={() => navigate(`/project/project-list`)}>
+        <Button
+          onClick={() =>
+            onChangeForm
+              ? setOpenModal(true)
+              : navigate(`/project/project-list`)
+          }
+        >
           Cancel
         </Button>
         <Button onClick={form.submit} type="primary">

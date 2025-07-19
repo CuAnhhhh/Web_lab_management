@@ -36,6 +36,8 @@ export namespace Project {
   }
 
   export interface ProjectDetailModel extends ProjectListModel {
+    isWeeklyReport?: boolean;
+    projectTypeName?: string;
     relationshipList?: Student.RelationshipStudentModel[];
   }
 
@@ -43,5 +45,11 @@ export namespace Project {
     projectDetail?: ProjectDetailModel;
     isDone?: boolean;
     error?: string;
+  }
+
+  export interface GetProjectListModel {
+    currentPage?: number;
+    searchValue?: string;
+    state?: boolean;
   }
 }

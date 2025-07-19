@@ -8,19 +8,25 @@ export namespace Reports {
     studentReport?: string;
     reportedDate?: string;
     reportedWeek?: number;
-    studentScore?: number;
+    isProjectReport?: boolean;
   }
 
   export interface ReportModelResponse {
-    reportList?: ReportListModel[];
+    reportList?: MemberReportModel[];
     projectCreatedDate?: string;
-    isLeader?: boolean;
+    isWeeklyReport?: boolean;
+    isMultiProject?: boolean;
     isDone?: boolean;
     error?: string;
   }
 
-  export interface GetReportModel {
+  export interface MemberListModel {
     studentId?: string;
-    currentId?: string;
+    studentName?: string;
+  }
+
+  export interface MemberReportModel extends ReportListModel {
+    studentName?: string;
+    memberReportList?: MemberReportModel[];
   }
 }

@@ -4,7 +4,7 @@ import { useState } from "react";
 import style from "./CustomCard.module.scss";
 
 interface ICustomCard {
-  label?: string;
+  label?: React.ReactNode;
   defaultOpen?: boolean;
   children?: React.ReactNode;
   disable?: boolean;

@@ -2,19 +2,19 @@ import axios from "axios";
 import { Student } from "../model/StudentModel";
 import { Common } from "../model/CommonModel";
 
-const api = "https://localhost:7051";
+const api = "http://26.243.146.110:7051";
 
 export async function getStudentList(
-  status: string
+  model: Student.GetStudentListModel
 ): Promise<Student.StudentListModelResponse> {
-  const response = await axios.get(`${api}/student/getstudentlist/${status}`);
+  const response = await axios.post(`${api}/student/getstudentlist`, model);
   return response.data;
 }
 
 export async function getMemberList(
-  studentId: string
-): Promise<Student.StudentListModelResponse> {
-  const response = await axios.get(`${api}/student/getmemberlist/${studentId}`);
+  model: Student.GetMemberModel
+): Promise<Student.StudentReportModelResponse> {
+  const response = await axios.post(`${api}/student/getmemberlist`, model);
   return response.data;
 }
 
@@ -23,10 +23,19 @@ export async function getStudentIdList(): Promise<Student.StudentIdModelResponse
   return response.data;
 }
 
-export async function deleteStudent(
+export async function getStudentChatList(
   studentId: string
+): Promise<Student.StudentIdModelResponse> {
+  const response = await axios.get(
+    `${api}/student/getstudentchatlist/${studentId}`
+  );
+  return response.data;
+}
+
+export async function deleteStudent(
+  model: Student.DeleteStudentModel
 ): Promise<Common.ResponseModel> {
-  const response = await axios.get(`${api}/student/deletestudent/${studentId}`);
+  const response = await axios.post(`${api}/student/deletestudent`, model);
   return response.data;
 }
 

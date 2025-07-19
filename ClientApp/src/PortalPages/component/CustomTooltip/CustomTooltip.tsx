@@ -22,7 +22,7 @@ const CustomTooltip = (props: ICustomTooltip) => {
     >
       <div
         className={style.children}
-        style={{ lineClamp: row ?? 1, maxWidth: maxWidth }}
+        style={{ WebkitLineClamp: row ?? 1, maxWidth: maxWidth }}
       >
         {children ?? content}
       </div>

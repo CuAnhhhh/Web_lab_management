@@ -42,7 +42,9 @@ namespace DATN.Model
 
     public class ProjectDetailModel : ProjectTableModel
     {
-        public List<ProjectStudentRelationshipTableModel>? RelationshipList { get; set; }
+        public bool? isWeeklyReport { get; set; }
+        public string? ProjectTypeName { get; set; }
+        public List<ProjectStudentRelationshiplistModel>? RelationshipList { get; set; }
     }
 
     public class ProjectDetailModelResponse
@@ -50,5 +52,12 @@ namespace DATN.Model
         public ProjectDetailModel? ProjectDetail { get; set; }
         public bool? IsDone { get; set; }
         public string? Error { get; set; }
+    }
+
+    public class GetProjectListModel
+    {
+        public bool? State { get; set; }
+        public int? CurrentPage { get; set; }
+        public string? SearchValue { get; set; }
     }
 }

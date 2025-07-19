@@ -28,14 +28,19 @@ namespace DATN.Model
         public bool? IsDone { get; set; }
         public int? Total { get; set; }
         public string? Error { get; set; }
-        public string? ProjectId { get; set; }
-        public bool? IsLeader { get; set; }
     }
 
     public class StudentIdModel
     {
         public string? StudentId { get; set; }
         public string? StudentName { get; set; }
+    }
+
+    public class GetStudentListModel
+    {
+        public string? Status { get; set; }
+        public int? CurrentPage { get; set; }
+        public string? StudentRole { get; set; }
     }
 
     public class StudentIdModelResponse
@@ -62,6 +67,8 @@ namespace DATN.Model
 
     public class ProjectHistoryModel
     {
+        public string? RelationshipId { get; set; }
+        public string? ProjectId { get; set; }
         public string? ProjectName { get; set; }
         public bool? OnGoing { get; set; }
         public DateTime? CreatedDate { get; set; }
@@ -70,6 +77,9 @@ namespace DATN.Model
         public string? RemovedBy { get; set; }
         public bool? IsLeader { get; set; }
         public int? Status { get; set; }
+        public bool? Collaboration { get; set; }
+        public int? ReportCount { get; set; }
+        public DateTime? ProjectCreatedDate { get; set; }
     }
 
     public class StudentDetailModel : StudentTableModel
@@ -95,6 +105,30 @@ namespace DATN.Model
     {
         public StudentDetailModel? StudentDetail { get; set; }
         public bool? IsDone { get; set; }
+        public string? Error { get; set; }
+    }
+
+    public class GetMemberModel
+    {
+        public string? StudentId { get; set; }
+        public int? CurrentPage { get; set; }
+        public string? ProjectId { get; set; }
+        public string? Filter { get; set; }
+    }
+
+    public class StudentReportModel : StudentTableModel
+    {
+        public string? CreatedByName { get; set; }
+        public string? ProjectName { get; set; }
+        public string? ProjectId { get; set; }
+    }
+
+    public class StudentReportModelResponse
+    {
+        public List<StudentReportModel>? StudentList { get; set; }
+        public bool? IsDone { get; set; }
+        public int? Total { get; set; }
+        public int? TotalMember { get; set; }
         public string? Error { get; set; }
     }
 }

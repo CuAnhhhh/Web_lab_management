@@ -1,6 +1,12 @@
 .CustomCard {
   padding: 8px 0;
 
+  :global {
+    .ant-form-item-label {
+      font-weight: 600;
+    }
+  }
+
   .CustomCardHeader {
     display: flex;
     justify-content: space-between;

@@ -4,6 +4,7 @@ export namespace Configuration {
     projectTypeId?: string;
     projectTypeName?: string;
     description?: string;
+    isWeeklyReport?: boolean;
     createdBy?: string;
     createdDate?: string;
   }
@@ -22,7 +23,7 @@ export namespace Configuration {
     createdBy?: string;
     createdDate?: string;
   }
-  
+
   export interface StudentRoleResponseModel {
     studentRoleList?: StudentRoleListModel[];
     total?: number;

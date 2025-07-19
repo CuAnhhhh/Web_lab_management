@@ -11,25 +11,28 @@ namespace DATN.Controllers
     {
         private readonly MyDbContext db = context;
 
-        [HttpGet()]
-        [Route("getprojectlist/{state?}")]
-        public ProjectModelResponse GetProjectList(string? state)
+        [HttpPost()]
+        [Route("getprojectlist")]
+        public ProjectModelResponse GetProjectList([FromBody] GetProjectListModel model)
         {
-            var dbP = db.Projects.Where(p => p.IsActive == ConvertStatus(state));
-            var dbR = db.ProjectStudentRelationship.Where(r =>
-                r.IsLeader == true && r.Status == (int)StudentRelationshipStatus.InProgress
+            var dbP = db.Projects.Where(p =>
+                p.IsActive == model.State
+                && (
+                    model.SearchValue != null
+                        ? p.ProjectTypeId == model.SearchValue
+                        : p.ProjectTypeId != null
+                )
             );
-            var dbS = db.Students.Where(s => s.Status != (int)StudentStatus.OutLab);
+            var dbS = db.Students;
             var dbPT = db.ProjectType;
 
             IQueryable<ProjectTableModel> list;
 
-            if (ConvertStatus(state))
+            if (model.State == true)
             {
                 list =
-                    from p in dbP
-                    join r in dbR on p.ProjectId equals r.ProjectId into dbPR
-                    from pR in dbPR.DefaultIfEmpty()
+                    from p in dbP.Skip(((model.CurrentPage ?? 0) - 1) * 10)
+                        .Take((model.CurrentPage ?? 0) * 10)
                     join s in dbS on p.CreatedBy equals s.StudentId into dbPCreated
                     from pCreated in dbPCreated.DefaultIfEmpty()
                     join pt in dbPT on p.ProjectTypeId equals pt.ProjectTypeId into dbPType
@@ -50,9 +53,8 @@ namespace DATN.Controllers
             else
             {
                 list =
-                    from p in dbP
-                    join r in dbR on p.ProjectId equals r.ProjectId into dbPR
-                    from pR in dbPR.DefaultIfEmpty()
+                    from p in dbP.Skip(((model.CurrentPage ?? 0) - 1) * 10)
+                        .Take((model.CurrentPage ?? 0) * 10)
                     join s in dbS on p.RemovedBy equals s.StudentId into dbPRemoved
                     from pRemoved in dbPRemoved.DefaultIfEmpty()
                     join pt in dbPT on p.ProjectTypeId equals pt.ProjectTypeId into dbPType
@@ -71,7 +73,12 @@ namespace DATN.Controllers
                     };
             }
 
-            return new ProjectModelResponse { ProjectList = [.. list], IsDone = true };
+            return new ProjectModelResponse
+            {
+                ProjectList = [.. list],
+                IsDone = true,
+                Total = dbP.Count(),
+            };
         }
 
         [HttpGet()]
@@ -80,44 +87,59 @@ namespace DATN.Controllers
         {
             var p = db.Projects.FirstOrDefault(p => p.ProjectId == projectId);
             if (p == null)
+            {
                 return new ProjectDetailModelResponse
                 {
                     IsDone = false,
                     Error = "Done exsist project",
                 };
-            var pCName = db.Students.FirstOrDefault(s => s.StudentId == p.CreatedBy)?.StudentName;
-            string? pRName = null;
-            if (p.IsActive == false)
-            {
-                pRName = db.Students.FirstOrDefault(s => s.StudentId == p.RemovedBy)?.StudentName;
             }
+            var pCName = db.Students.FirstOrDefault(s => s.StudentId == p.CreatedBy)?.StudentName;
+            var pRName = db.Students.FirstOrDefault(s => s.StudentId == p.RemovedBy)?.StudentName;
             var pT = db.ProjectType.FirstOrDefault(t => t.ProjectTypeId == p.ProjectTypeId);
-            var dbR = db.ProjectStudentRelationship.Where(r =>
-                r.ProjectId == projectId && r.Status == (int)StudentRelationshipStatus.InProgress
-            );
-            var dbS = db.Students.Where(student =>
-                student.InProject == true && student.Status != (int)StudentStatus.OutLab
-            );
+            IQueryable<ProjectStudentRelationshipTableModel>? dbR = null;
+            if (p.IsActive == true)
+            {
+                dbR = db.ProjectStudentRelationship.Where(r =>
+                    r.ProjectId == projectId
+                    && r.Status == (int)StudentRelationshipStatus.InProgress
+                );
+            }
+            else
+            {
+                dbR = db.ProjectStudentRelationship.Where(r =>
+                    r.ProjectId == projectId
+                    && (
+                        r.Status == (int)StudentRelationshipStatus.Completed
+                        || r.Status == (int)StudentRelationshipStatus.EndProject
+                    )
+                );
+            }
+            var dbS = db.Students;
             var rList =
                 from r in dbR
                 join s in dbS on r.StudentId equals s.StudentId into dbRS
                 from rs in dbRS.DefaultIfEmpty()
                 join s in dbS on r.CreatedBy equals s.StudentId into dbRCreate
                 from rc in dbRCreate.DefaultIfEmpty()
-                select new ProjectStudentRelationshipTableModel
+                select new ProjectStudentRelationshiplistModel
                 {
                     RelationshipId = r.RelationshipId,
                     ProjectId = projectId,
-                    StudentId = rs.StudentName,
+                    StudentId = rs.StudentId,
+                    StudentName = rs.StudentName,
                     IsLeader = r.IsLeader,
                     CreatedDate = r.CreatedDate,
                     CreatedBy = rc.StudentName,
                 };
             var projectDetail = new ProjectDetailModel
             {
+                ProjectId = p.ProjectId,
                 ProjectName = p.ProjectName,
                 Description = p.Description,
-                ProjectTypeId = pT?.ProjectTypeName,
+                isWeeklyReport = pT?.IsWeeklyReport,
+                ProjectTypeId = pT?.ProjectTypeId,
+                ProjectTypeName = pT?.ProjectTypeName,
                 Collaboration = p.Collaboration,
                 TotalMember = p.TotalMember,
                 IsActive = p.IsActive,
@@ -136,57 +158,157 @@ namespace DATN.Controllers
         [Route("createproject")]
         public ResponseModel CreateProject([FromBody] ProjectCreateModel model)
         {
-            var sameName = db.Projects.Any(item => item.ProjectName == model.ProjectName);
-            if (sameName)
+            var sameName = db.Projects.FirstOrDefault(item =>
+                item.ProjectName == model.ProjectName
+            );
+            if (model.ProjectId == null)
             {
-                return new ResponseModel
+                if (sameName != null)
                 {
-                    IsDone = false,
-                    Error = "There is a project with the same name!",
-                    ErrorCode = 101,
+                    return new ResponseModel
+                    {
+                        IsDone = false,
+                        Error = "There is a project with the same name!",
+                        ErrorCode = 101,
+                    };
+                }
+                model.ProjectId = Guid.NewGuid().ToString();
+                var newP = new ProjectTableModel
+                {
+                    ProjectId = model.ProjectId,
+                    ProjectName = model.ProjectName,
+                    Description = model.Description,
+                    ProjectTypeId = model.ProjectTypeId,
+                    Collaboration = model.Collaboration,
+                    TotalMember = model.TotalMember,
+                    IsActive = true,
+                    Reason = null,
+                    CreatedBy = model.CreatedBy,
+                    CreatedDate = model.CreatedDate,
                 };
-            }
-            var newguid = Guid.NewGuid().ToString();
-            var newP = new ProjectTableModel
-            {
-                ProjectId = newguid,
-                ProjectName = model.ProjectName,
-                Description = model.Description,
-                ProjectTypeId = model.ProjectTypeId,
-                Collaboration = model.Collaboration,
-                TotalMember = model.TotalMember,
-                IsActive = true,
-                Reason = null,
-                CreatedBy = model.CreatedBy,
-                CreatedDate = model.CreatedDate,
-            };
-            foreach (StudentIdModel m in model.MemberList ?? [])
-            {
-                var edits = db.Students.FirstOrDefault(student => student.StudentId == m.StudentId);
-                if (edits != null)
+                foreach (StudentIdModel m in model.MemberList ?? [])
                 {
+                    var edits = db.Students.FirstOrDefault(student =>
+                        student.StudentId == m.StudentId
+                    );
                     edits.InProject = true;
                 }
+                var newRMList = model
+                    .MemberList?.Select(
+                        (member, index) =>
+                            new ProjectStudentRelationshipTableModel
+                            {
+                                RelationshipId = Guid.NewGuid().ToString(),
+                                ProjectId = model.ProjectId,
+                                StudentId = member.StudentId,
+                                IsLeader = index == 0,
+                                CreatedDate = model.CreatedDate,
+                                CreatedBy = model.CreatedBy,
+                                Status = (int)StudentRelationshipStatus.InProgress,
+                            }
+                    )
+                    .ToList();
+                db.Projects.Add(newP);
+                if (newRMList?.Count > 0)
+                {
+                    db.ProjectStudentRelationship.AddRange(newRMList);
+                }
             }
-            var newRMList = model
-                .MemberList?.Select(
-                    (member, index) =>
-                        new ProjectStudentRelationshipTableModel
-                        {
-                            RelationshipId = Guid.NewGuid().ToString(),
-                            ProjectId = newguid,
-                            StudentId = member.StudentId,
-                            IsLeader = index == 0,
-                            CreatedDate = model.CreatedDate,
-                            CreatedBy = model.CreatedBy,
-                            Status = (int)StudentRelationshipStatus.InProgress,
-                        }
-                )
-                .ToList();
-            db.Projects.Add(newP);
-            if (newRMList?.Count > 0)
+            else
             {
-                db.ProjectStudentRelationship.AddRange(newRMList);
+                if (
+                    sameName?.ProjectId != model.ProjectId
+                    && sameName?.ProjectName == model.ProjectName
+                )
+                {
+                    return new ResponseModel
+                    {
+                        IsDone = false,
+                        Error = "There is a project with the same name!",
+                        ErrorCode = 101,
+                    };
+                }
+                var p = db.Projects.FirstOrDefault(item => item.ProjectId == model.ProjectId);
+                if (p != null)
+                {
+                    p.ProjectName = model.ProjectName;
+                    p.Description = model.Description;
+                    p.ProjectTypeId = model.ProjectTypeId;
+                    p.TotalMember = model.TotalMember;
+                    p.CreatedBy = model.CreatedBy;
+                    p.CreatedDate = model.CreatedDate;
+                    var memberList = (
+                        db.ProjectStudentRelationship.Where(r =>
+                            r.ProjectId == p.ProjectId
+                            && r.Status == (int)StudentRelationshipStatus.InProgress
+                        )
+                    ).ToList();
+                    var currentLeader = memberList.Find(m => m.IsLeader == true);
+                    var newleaderId = model.MemberList?[0]?.StudentId;
+                    if (currentLeader != null && currentLeader?.StudentId != newleaderId)
+                    {
+                        var exsist = memberList.FirstOrDefault(m => m.StudentId == newleaderId);
+                        if (exsist != null)
+                        {
+                            currentLeader.RemovedBy = model.CreatedBy;
+                            currentLeader.RemovedDate = model.CreatedDate;
+                            currentLeader.Status = (int)StudentRelationshipStatus.Demote;
+
+                            exsist.RemovedBy = model.CreatedBy;
+                            exsist.RemovedDate = model.CreatedDate;
+                            exsist.Status = (int)StudentRelationshipStatus.Promote;
+
+                            var oldLeaderR = new ProjectStudentRelationshipTableModel
+                            {
+                                RelationshipId = Guid.NewGuid().ToString(),
+                                ProjectId = model.ProjectId,
+                                StudentId = currentLeader.StudentId,
+                                IsLeader = false,
+                                CreatedDate = model.CreatedDate,
+                                CreatedBy = model.CreatedBy,
+                                Status = (int)StudentRelationshipStatus.InProgress,
+                            };
+                            var newLeaderR = new ProjectStudentRelationshipTableModel
+                            {
+                                RelationshipId = Guid.NewGuid().ToString(),
+                                ProjectId = model.ProjectId,
+                                StudentId = exsist.StudentId,
+                                IsLeader = true,
+                                CreatedDate = model.CreatedDate,
+                                CreatedBy = model.CreatedBy,
+                                Status = (int)StudentRelationshipStatus.InProgress,
+                            };
+
+                            db.ProjectStudentRelationship.AddRange([newLeaderR, oldLeaderR]);
+                        }
+                        else
+                        {
+                            currentLeader.RemovedBy = model.CreatedBy;
+                            currentLeader.RemovedDate = model.CreatedDate;
+                            currentLeader.Status = (int)StudentRelationshipStatus.Removed;
+                            var oldLeader = db.Students.FirstOrDefault(s =>
+                                s.StudentId == currentLeader.StudentId
+                            );
+                            oldLeader.InProject = false;
+                            var newLeader = db.Students.FirstOrDefault(s =>
+                                s.StudentId == newleaderId
+                            );
+                            newLeader.InProject = true;
+
+                            var newR = new ProjectStudentRelationshipTableModel
+                            {
+                                RelationshipId = Guid.NewGuid().ToString(),
+                                ProjectId = model.ProjectId,
+                                StudentId = newleaderId,
+                                IsLeader = true,
+                                CreatedDate = model.CreatedDate,
+                                CreatedBy = model.CreatedBy,
+                                Status = (int)StudentRelationshipStatus.InProgress,
+                            };
+                            db.ProjectStudentRelationship.Add(newR);
+                        }
+                    }
+                }
             }
             try
             {
@@ -197,7 +319,7 @@ namespace DATN.Controllers
                 return new ResponseModel { IsDone = false, Error = ex.Message };
             }
 
-            return new ResponseModel { Id = newguid, IsDone = true };
+            return new ResponseModel { Id = model.ProjectId, IsDone = true };
         }
 
         [HttpPost()]
@@ -220,7 +342,10 @@ namespace DATN.Controllers
                 pD.RemovedBy = model.RemovedBy;
                 pD.RemovedDate = model.RemovedDate;
                 var dbR = db
-                    .ProjectStudentRelationship.Where(r => r.ProjectId == pD.ProjectId)
+                    .ProjectStudentRelationship.Where(r =>
+                        r.ProjectId == pD.ProjectId
+                        && r.Status == (int)StudentRelationshipStatus.InProgress
+                    )
                     .ToList();
                 foreach (ProjectStudentRelationshipTableModel? r in dbR)
                 {
@@ -248,13 +373,71 @@ namespace DATN.Controllers
             }
         }
 
-        public static bool ConvertStatus(string? state)
+        [HttpGet()]
+        [Route("getprojectlistname/{state?}")]
+        public ProjectModelResponse GetProjectListName(int? state)
         {
-            if (state == "open")
+            if (state == 0)
             {
-                return true;
+                var list = db.Projects.Where(p => p.IsActive == true);
+                return new ProjectModelResponse { ProjectList = [.. list], IsDone = true };
             }
-            return false;
+            else
+            {
+                var list = db.Projects.Where(p => p.IsActive == true && p.Collaboration == true);
+                return new ProjectModelResponse { ProjectList = [.. list], IsDone = true };
+            }
+        }
+
+        [HttpPost()]
+        [Route("completeproject")]
+        public ResponseModel CompleteProject([FromBody] DeleteProjectModel model)
+        {
+            var pD = db.Projects.FirstOrDefault(item => item.ProjectId == model.ProjectId);
+            if (pD == null)
+            {
+                return new ResponseModel
+                {
+                    Id = model.ProjectId,
+                    Error = "Project does not exsist !",
+                };
+            }
+            else
+            {
+                pD.IsActive = false;
+                pD.Reason = model.Reason;
+                pD.RemovedBy = model.RemovedBy;
+                pD.RemovedDate = model.RemovedDate;
+                var dbR = db
+                    .ProjectStudentRelationship.Where(r =>
+                        r.ProjectId == pD.ProjectId
+                        && r.Status == (int)StudentRelationshipStatus.InProgress
+                    )
+                    .ToList();
+                foreach (ProjectStudentRelationshipTableModel? r in dbR)
+                {
+                    r.RemovedDate = model.RemovedDate;
+                    r.RemovedBy = model.RemovedBy;
+                    r.Status = (int)StudentRelationshipStatus.Completed;
+                    var edits = db.Students.FirstOrDefault(student =>
+                        student.StudentId == r.StudentId
+                    );
+                    if (edits != null)
+                    {
+                        edits.InProject = false;
+                    }
+                }
+                try
+                {
+                    db.SaveChanges();
+                }
+                catch (DbUpdateException ex)
+                {
+                    return new ResponseModel { IsDone = false, Error = ex.Message };
+                }
+
+                return new ResponseModel { Id = pD.ProjectId, IsDone = true };
+            }
         }
     }
 }

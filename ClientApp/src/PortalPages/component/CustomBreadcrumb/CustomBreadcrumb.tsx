@@ -3,7 +3,12 @@ import { Breadcrumb } from "antd";
 import { BreadcrumbItemType } from "antd/es/breadcrumb/Breadcrumb";
 import { useLocation } from "react-router-dom";
 
-const BreadcrumbProps = [
+interface IBreadcrumb {
+  title: string;
+  key: string;
+}
+
+const BreadcrumbProps: IBreadcrumb[] = [
   {
     title: "Project",
     key: "project",
@@ -19,6 +24,10 @@ const BreadcrumbProps = [
   {
     title: "Project report",
     key: "project-report",
+  },
+  {
+    title: "Project report detail",
+    key: "project-report-detail",
   },
   {
     title: "Add a project",
@@ -65,10 +74,6 @@ const BreadcrumbProps = [
     key: "member-list",
   },
   {
-    title: "Report list",
-    key: "report-list",
-  },
-  {
     title: "Report detail",
     key: "report-detail",
   },
@@ -83,6 +88,10 @@ const BreadcrumbProps = [
   {
     title: "Student Role",
     key: "student-role",
+  },
+  {
+    title: "Chat box",
+    key: "chat-box",
   },
 ];
 

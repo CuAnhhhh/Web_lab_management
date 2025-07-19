@@ -1,0 +1,12 @@
+.submitButton {
+  display: flex;
+  justify-content: end;
+  gap: 16px;
+}
+.formLayout {
+  :global {
+    .ant-form-item-label {
+      font-weight: 600;
+    }
+  }
+}

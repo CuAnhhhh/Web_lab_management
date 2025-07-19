@@ -17,5 +17,6 @@ namespace DATN.DataContext
         public DbSet<StudentRoleTableModel> StudentRole { get; set; }
         public DbSet<FileTableModel> Files { get; set; }
         public DbSet<ReportTableModel> Reports { get; set; }
+        public DbSet<ChatboxTableModel> Messages { get; set; }
     }
 }

@@ -7,13 +7,13 @@ export namespace Scheduler {
     endDate?: string;
     description?: string;
     projectId?: string;
+    projectName?: string;
     createdBy?: string;
+    createdByName?: string;
   }
 
   export interface SchedulerModelResponse {
     schedulerList?: SchedulerModel[];
-    projectId?: string;
-    isLeader?: boolean;
     isDone?: boolean;
     error?: string;
   }

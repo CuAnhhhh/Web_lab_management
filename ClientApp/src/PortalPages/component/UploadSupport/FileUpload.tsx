@@ -15,6 +15,7 @@ import {
   useImperativeHandle,
   useState,
 } from "react";
+import { useLoading } from "../CustomLoading/CustomLoading";
 import style from "./FileUpload.module.scss";
 
 type FileType = Parameters<GetProp<UploadProps, "beforeUpload">>[0];
@@ -46,6 +47,7 @@ const Component = (
   const listName = fileList.map((f) => f.name);
   const [serviceId, setServiceId] = useState<string>("");
   const [exsistCount, setExsistCount] = useState<number>(0);
+  const { openLoading, closeLoading } = useLoading();
 
   useEffect(() => {
     if (serviceId) {
@@ -74,7 +76,8 @@ const Component = (
     formData.append("serviceType", serviceType);
     formData.append("exsistCount", exsistCount.toString());
     try {
-      await axios.post("https://localhost:7051/upload/uploadfile", formData);
+      openLoading();
+      await axios.post("http://26.243.146.110:7051/upload/uploadfile", formData);
       setFileList([]);
     } catch (e) {
       notification.open({
@@ -82,17 +85,20 @@ const Component = (
         type: "error",
       });
     }
+    closeLoading();
   };
 
   const deleteFile = async (id?: string) => {
     try {
-      await axios.get(`https://localhost:7051/upload/deletefile/${id}`);
+      openLoading();
+      await axios.get(`http://26.243.146.110:7051/upload/deletefile/${id}`);
     } catch (e) {
       notification.open({
         message: "Something went wrong",
         type: "error",
       });
     }
+    closeLoading();
   };
 
   const downloadFile = async (file: UploadFile) => {
@@ -100,7 +106,7 @@ const Component = (
       const split = file.url?.split(serviceType + "/");
       const filename = split?.[1];
       const response = await axios.post(
-        "https://localhost:7051/upload/downloadfile",
+        "http://26.243.146.110:7051/upload/downloadfile",
         { serviceType: serviceType, serviceId: filename },
         {
           responseType: "blob",
@@ -126,8 +132,9 @@ const Component = (
 
   const getFile = async () => {
     try {
+      openLoading();
       const { data } = await axios.post(
-        `https://localhost:7051/upload/getfilelist`,
+        `http://26.243.146.110:7051/upload/getfilelist`,
         {
           serviceType: serviceType,
           serviceId: serviceId,
@@ -137,7 +144,7 @@ const Component = (
       const newFileList = (data as IFileList[])?.map((item) => ({
         uid: item?.fileId,
         name: item?.fileName,
-        url: "https://localhost:7051/" + item?.fileUrl,
+        url: "http://26.243.146.110:7051/" + item?.fileUrl,
         status: "done",
       })) as UploadFile[];
       setFileList(newFileList);
@@ -148,6 +155,7 @@ const Component = (
         type: "error",
       });
     }
+    closeLoading();
   };
 
   const onRemove = (file: UploadFile) => {
@@ -168,7 +176,8 @@ const Component = (
     formData.append("serviceType", serviceType);
     formData.append("exsistCount", exsistCount.toString());
     try {
-      await axios.post("https://localhost:7051/upload/uploadfile", formData);
+      openLoading();
+      await axios.post("http://26.243.146.110:7051/upload/uploadfile", formData);
       await getFile();
     } catch (e) {
       notification.open({
@@ -176,6 +185,7 @@ const Component = (
         type: "error",
       });
     }
+    closeLoading();
   };
 
   const beforeUpload = (file: UploadFile, files: UploadFile[]) => {

@@ -8,8 +8,8 @@ const UserAccount = () => {
       label: "Logout",
       key: "0",
       onClick: () => {
-        localStorage.removeItem("userData");
-        window.location.href = "http://localhost:3000/login";
+        localStorage.setItem("userData", "");
+        window.location.href = "http://26.243.146.110:3000/login";
       },
     },
   ];

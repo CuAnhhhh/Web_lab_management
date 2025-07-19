@@ -4,8 +4,10 @@ export namespace Template {
     templateId?: string;
     templateName?: string;
     description?: string;
+    projectId?: string;
     createdDate?: string;
     createdBy?: string;
+    createdByName?: string;
   }
 
   export interface TemplateModelResponse {
@@ -13,5 +15,10 @@ export namespace Template {
     total?: number;
     isDone?: boolean;
     error?: string;
+  }
+
+  export interface GetTemplateListModel {
+    currentPage?: number;
+    projectId?: string;
   }
 }

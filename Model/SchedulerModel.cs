@@ -14,12 +14,23 @@ namespace DATN.Model
         public string? ProjectId { get; set; }
     }
 
+    public class SchedulerListModel : SchedulerTableModel
+    {
+        public string? ProjectName { get; set; }
+        public string? CreatedByName { get; set; }
+    }
+
     public class SchedulerModelResponse
     {
-        public List<SchedulerTableModel>? SchedulerList { get; set; }
-        public string? ProjectId { get; set; }
-        public bool? IsLeader { get; set; }
+        public List<SchedulerListModel>? SchedulerList { get; set; }
         public bool? IsDone { get; set; }
         public string? Error { get; set; }
+    }
+
+    public class EmailRequestModel
+    {
+        public string? To { get; set; }
+        public string? Subject { get; set; }
+        public string? Message { get; set; }
     }
 }

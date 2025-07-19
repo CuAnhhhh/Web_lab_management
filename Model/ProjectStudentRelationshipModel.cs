@@ -15,4 +15,9 @@ namespace DATN.Model
         public string? RemovedBy { get; set; }
         public int? Status { get; set; }
     }
+
+    public class ProjectStudentRelationshiplistModel : ProjectStudentRelationshipTableModel
+    {
+        public string? StudentName { get; set; }
+    }
 }

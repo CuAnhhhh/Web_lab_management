@@ -7,6 +7,8 @@
         Removed = 103,
         Completed = 104,
         OutLab = 105,
+        Promote = 106,
+        Demote = 107,
     }
 
     public enum StudentStatus
@@ -17,12 +19,9 @@
         fourthyear = 104,
         fifthyear = 105,
         sixthyear = 106,
-        OutLab = 107,
-    }
-
-    public enum FileType
-    {
-        template = 101,
-        project = 102,
+        master = 107,
+        engineer = 108,
+        phd = 109,
+        OutLab = 110,
     }
 }

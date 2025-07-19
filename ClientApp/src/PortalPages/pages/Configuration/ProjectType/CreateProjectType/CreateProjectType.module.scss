@@ -3,10 +3,35 @@
     .ant-drawer-footer {
       padding: 16px 24px;
     }
+
     .ant-form-item-label {
       font-weight: 600;
     }
+
+    .ant-switch {
+      min-width: 60px;
+      min-height: 30px;
+      display: flex;
+      align-items: center;
+    }
+
+    .ant-switch-inner {
+      display: flex;
+      justify-items: center;
+      align-items: center;
+    }
+
+    .ant-switch-handle {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+    }
   }
+
+  .label {
+    font-weight: 600;
+  }
+
   .bottomButton {
     display: flex;
     gap: 16px;
@@ -18,6 +43,7 @@
       }
     }
   }
+
   .documentBorder {
     border: 1px solid #d9d9d9;
     padding: 24px;

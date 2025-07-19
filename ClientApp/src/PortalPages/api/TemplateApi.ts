@@ -2,10 +2,12 @@ import axios from "axios";
 import { Common } from "../model/CommonModel";
 import { Template } from "../model/TemplateModel";
 
-const api = "https://localhost:7051";
+const api = "http://26.243.146.110:7051";
 
-export async function getTemplateList(): Promise<Template.TemplateModelResponse> {
-  const response = await axios.get(`${api}/template/gettemplatelist`);
+export async function getTemplateList(
+  model: Template.GetTemplateListModel
+): Promise<Template.TemplateModelResponse> {
+  const response = await axios.post(`${api}/template/gettemplatelist`, model);
   return response.data;
 }
 

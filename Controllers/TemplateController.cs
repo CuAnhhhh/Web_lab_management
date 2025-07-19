@@ -11,34 +11,67 @@ namespace DATN.Controllers
     {
         private readonly MyDbContext db = context;
 
-        [HttpGet()]
+        [HttpPost()]
         [Route("gettemplatelist")]
-        public TemplateModelResponse GetTemplateList()
+        public TemplateModelResponse GetTemplateList([FromBody] GetTemplateListModel model)
         {
-            var dbT = db.Templates;
+            IQueryable<TemplateTableModel> dbT;
+            if (model.ProjectId == "0")
+            {
+                dbT = db.Templates;
+            }
+            else
+            {
+                dbT = db.Templates.Where(t => t.ProjectId == model.ProjectId || t.ProjectId == "0");
+            }
             var dbS = db.Students;
 
             var list =
-                from t in dbT
+                from t in dbT.Skip(((model.CurrentPage ?? 0) - 1) * 10)
+                    .Take((model.CurrentPage ?? 0) * 10)
                 join s in dbS on t.CreatedBy equals s.StudentId into newdbT
                 from newT in newdbT.DefaultIfEmpty()
-                select new TemplateTableModel
+                select new TemplateListModel
                 {
                     TemplateId = t.TemplateId,
                     TemplateName = t.TemplateName,
                     Description = t.Description,
+                    ProjectId = t.ProjectId,
                     CreatedDate = t.CreatedDate,
-                    CreatedBy = newT.StudentName,
+                    CreatedBy = t.CreatedBy,
+                    CreatedByName = newT.StudentName,
                 };
-            return new TemplateModelResponse { TemplateList = [.. list], IsDone = true };
+            return new TemplateModelResponse
+            {
+                TemplateList = [.. list],
+                IsDone = true,
+                Total = dbT.Count(),
+            };
         }
 
         [HttpPost()]
         [Route("createtemplate")]
         public ResponseModel CreateTemplate([FromBody] TemplateTableModel model)
         {
-            if (model.TemplateId == null)
+            TemplateTableModel? template = null;
+            if (model.TemplateId != null)
             {
+                template = db.Templates.FirstOrDefault(t => t.TemplateId == model.TemplateId);
+            }
+            var sameName = db.Templates.FirstOrDefault(item =>
+                item.TemplateName == model.TemplateName
+            );
+            if (template == null)
+            {
+                if (sameName != null)
+                {
+                    return new ResponseModel
+                    {
+                        IsDone = false,
+                        Error = "There is a template with the same name!",
+                        ErrorCode = 101,
+                    };
+                }
                 model.TemplateId = Guid.NewGuid().ToString();
                 db.Templates.Add(model);
                 try
@@ -50,15 +83,22 @@ namespace DATN.Controllers
                     return new ResponseModel { IsDone = false, Error = ex.Message };
                 }
             }
-            var template = db.Templates.FirstOrDefault(t => t.TemplateId == model.TemplateId);
-            if (template == null)
+            else
             {
-                return new ResponseModel { IsDone = false, Error = "Doesn't exsist template" };
+                if (sameName?.TemplateId != model.TemplateId)
+                {
+                    return new ResponseModel
+                    {
+                        IsDone = false,
+                        Error = "There is a template with the same name!",
+                        ErrorCode = 101,
+                    };
+                }
+                template.TemplateName = model.TemplateName;
+                template.Description = model.Description;
+                template.CreatedDate = model.CreatedDate;
+                template.CreatedBy = model.CreatedBy;
             }
-            template.TemplateName = model.TemplateName;
-            template.Description = model.Description;
-            template.CreatedDate = model.CreatedDate;
-            template.CreatedBy = model.CreatedBy;
             try
             {
                 db.SaveChanges();

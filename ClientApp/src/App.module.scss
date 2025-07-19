@@ -21,20 +21,27 @@
       padding-top: 16px;
       .ant-table-container {
         border: 1px solid #d9d9d9;
-        border-radius: 6px;
+        border-radius: 8px;
       }
     }
     .tablePadding {
-      padding: 16px 32px 0;
+      padding: 16px 32px;
+      height: calc(100vh - 56px);
+      overflow: auto;
     }
     .detailPadding {
       padding: 0 32px 32px;
-      height: calc(100vh - 55px);
+      height: calc(100vh - 56px);
+      overflow: auto;
+    }
+    .formDetailPadding {
+      padding: 0 32px 32px;
+      height: calc(100vh - 128px);
       overflow: auto;
     }
     .WLM_FormLayout {
       padding: 32px 128px 0;
-      height: calc(100vh - 127px);
+      height: calc(100vh - 128px);
       overflow: auto;
       :global {
         .ant-form-item-label {

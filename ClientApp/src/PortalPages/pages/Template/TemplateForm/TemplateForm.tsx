@@ -1,4 +1,4 @@
-import { CloseOutlined } from "@ant-design/icons";
+import { CloseOutlined, ExclamationCircleFilled } from "@ant-design/icons";
 import { Button, Drawer, Form, Input, notification } from "antd";
 import dayjs from "dayjs";
 import {
@@ -16,9 +16,11 @@ import {
 } from "src/PortalPages/component/UploadSupport/FileUpload";
 import { Template } from "src/PortalPages/model/TemplateModel";
 import style from "./TemplateForm.module.scss";
+import { useLoading } from "src/PortalPages/component/CustomLoading/CustomLoading";
+import CustomModal from "src/PortalPages/component/CustomModal/CustomModal";
 
 export interface ITemplateFormRef {
-  openPanel: (id?: string) => void;
+  openPanel: (value?: string) => void;
 }
 
 interface ITemplateForm {
@@ -32,9 +34,13 @@ const Component = (
 ) => {
   const [open, setOpen] = useState(false);
   const [form] = Form.useForm();
-  const userData = JSON.parse(localStorage.getItem("userData") ?? "");
+  const userData = JSON.parse(localStorage.getItem("userData") ?? "null");
   const uploadRef = useRef<FileUploadPropsRef>(null);
   const [id, setId] = useState<string>();
+  const { openLoading, closeLoading } = useLoading();
+  const [sameName, setSameName] = useState<boolean>(false);
+  const [onChangeForm, setOnChangeForm] = useState<boolean>(false);
+  const [openModal, setOpenModal] = useState<boolean>(false);
 
   useImperativeHandle(ref, () => ({
     openPanel,
@@ -48,12 +54,18 @@ const Component = (
     }
   }, [id]);
 
-  const openPanel = (id?: string) => {
-    setId(id);
+  useEffect(() => {
+    sameName && form.validateFields(["templateName"]);
+  }, [sameName]);
+
+  const openPanel = (value?: string) => {
+    setId(value);
     setOpen(true);
   };
 
   const closePanel = () => {
+    setOnChangeForm(false);
+    setOpenModal(false);
     form.resetFields();
     setId(undefined);
     uploadRef?.current?.resetUpload();
@@ -65,11 +77,13 @@ const Component = (
       templateId: id,
       templateName: form.getFieldValue("templateName"),
       description: form.getFieldValue("description"),
+      projectId: userData?.projectId,
       createdBy: userData?.studentId,
       createdDate: dayjs().format(),
     };
 
     try {
+      openLoading();
       const result = await createTemplate(model);
       if (result?.isDone) {
         if (!id) {
@@ -82,12 +96,16 @@ const Component = (
         closePanel();
         trigger?.();
       }
+      if (result?.errorCode === 101) {
+        setSameName(true);
+      }
     } catch (e) {
       notification.open({
         message: "Something went wrong",
         type: "error",
       });
     }
+    closeLoading();
   };
 
   return (
@@ -96,20 +114,33 @@ const Component = (
       open={open}
       width={720}
       extra={
-        <Button type="text" onClick={closePanel} icon={<CloseOutlined />} />
+        <Button
+          type="text"
+          onClick={onChangeForm ? () => setOpenModal(true) : closePanel}
+          icon={<CloseOutlined />}
+        />
       }
       closable={false}
       className={style.customPanel}
       footer={
         <div className={style.bottomButton}>
-          <Button onClick={closePanel}>Close</Button>
+          <Button
+            onClick={onChangeForm ? () => setOpenModal(true) : closePanel}
+          >
+            Close
+          </Button>
           <Button onClick={form.submit} type="primary">
             Submit
           </Button>
         </div>
       }
     >
-      <Form form={form} layout="vertical" onFinish={submitForm}>
+      <Form
+        form={form}
+        layout="vertical"
+        onFinish={submitForm}
+        onChange={() => setOnChangeForm(true)}
+      >
         <Form.Item
           label="Template name"
           name="templateName"
@@ -118,9 +149,23 @@ const Component = (
               required: true,
               message: "Add a template name!",
             },
+            {
+              validator: async () => {
+                if (sameName) {
+                  return Promise.reject(
+                    new Error("There is a template with the same name!")
+                  );
+                }
+                return Promise.resolve();
+              },
+            },
           ]}
         >
-          <Input style={{ height: 40 }} />
+          <Input
+            size="large"
+            placeholder="Input a name"
+            onChange={() => sameName && setSameName(false)}
+          />
         </Form.Item>
         <Form.Item
           label="Description"
@@ -132,12 +177,32 @@ const Component = (
             },
           ]}
         >
-          <Input.TextArea rows={10} style={{ resize: "none" }} />
+          <Input.TextArea
+            rows={10}
+            style={{ resize: "none" }}
+            onBlur={(e) =>
+              form.setFieldValue("description", e.target.value.trim())
+            }
+          />
         </Form.Item>
         <Form.Item label="Documents">
           <FileUpload serviceType="templates" ref={uploadRef} />
         </Form.Item>
       </Form>
+      <CustomModal
+        title={
+          <div>
+            <ExclamationCircleFilled style={{ color: "#08c" }} /> Discard change
+          </div>
+        }
+        open={openModal}
+        onOk={closePanel}
+        onCancel={() => setOpenModal(false)}
+      >
+        <div style={{ fontWeight: 600, paddingBottom: 16 }}>
+          Do you want to cancel create template. All infomation will be removed!
+        </div>
+      </CustomModal>
     </Drawer>
   );
 };

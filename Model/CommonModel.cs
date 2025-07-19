@@ -43,7 +43,11 @@ namespace DATN.Model
     public class StudentLoginResponseModel
     {
         public string? StudentId { get; set; }
+        public string? StudentName { get; set; }
         public string? StudentRole { get; set; }
+        public string? ProjectId { get; set; }
+        public bool? IsLeader { get; set; }
         public bool? IsCorrect { get; set; }
+        public bool? Collaboration { get; set; }
     }
 }

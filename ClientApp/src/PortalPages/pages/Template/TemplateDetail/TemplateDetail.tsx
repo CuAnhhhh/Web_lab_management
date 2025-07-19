@@ -70,9 +70,9 @@ const Component = (
       <CustomCard label="Template information">
         <CustomText label="Template name">{template?.templateName}</CustomText>
         <CustomText label="Description">{template?.description}</CustomText>
-        <CustomText label="Created by">{template?.createdBy ?? 'Admin'}</CustomText>
+        <CustomText label="Created by">{template?.createdByName ?? 'Admin'}</CustomText>
         <CustomText label="Created at">
-          {dayjs(template?.createdDate).format("DD/MMM/YYYY")}
+          {dayjs(template?.createdDate).format("DD/MMM/YYYY HH:mm")}
         </CustomText>
       </CustomCard>
       <CustomCard label="Template file">

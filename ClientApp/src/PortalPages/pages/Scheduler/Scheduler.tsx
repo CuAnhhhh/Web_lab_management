@@ -3,12 +3,17 @@ import { Button, Calendar, Empty, notification, Select } from "antd";
 import { HeaderRender } from "antd/es/calendar/generateCalendar";
 import dayjs, { Dayjs } from "dayjs";
 import { useEffect, useRef, useState } from "react";
-import { getSchedulers } from "src/PortalPages/api/SchedulerApi";
+import {
+  deleteScheduler,
+  getSchedulers,
+} from "src/PortalPages/api/SchedulerApi";
+import { useLoading } from "src/PortalPages/component/CustomLoading/CustomLoading";
 import { Scheduler } from "src/PortalPages/model/SchedulerModel";
 import { CreatePanel, ICreatePanelRef } from "./CreatePanel/CreatePanel";
 import style from "./Scheduler.module.scss";
 import SchedulerCard from "./SchedulerCard/SchedulerCard";
 import { IDateType, monthsLabel } from "./SchedulerModel";
+import CustomModal from "src/PortalPages/component/CustomModal/CustomModal";
 
 const SchedulerPage = () => {
   const CreatePanelRef = useRef<ICreatePanelRef>(null);
@@ -18,21 +23,23 @@ const SchedulerPage = () => {
   const [currentSchedules, setCurrentSchedules] =
     useState<Scheduler.SchedulerModel[]>();
   const [selectedMonth, setSelectedMonth] = useState<number>(dayjs().month());
-  const [projectId, setProjectId] = useState<string>();
-  const [isLeader, setIsLeader] = useState<boolean>();
-  const userData = JSON.parse(localStorage.getItem("userData") ?? "");
+  const userData = JSON.parse(localStorage.getItem("userData") ?? "null");
+  const { openLoading, closeLoading } = useLoading();
+  const [openModal, setOpenModal] = useState(false);
+  const [selected, setSeleted] = useState<string>();
 
   const trigger = () => setReload(!reload);
 
   const getSchedulerListFuntion = async () => {
     try {
+      openLoading();
       const result = await getSchedulers(userData?.studentId);
       if (result?.isDone) {
         setSchedulerList(result?.schedulerList);
-        setProjectId(result?.projectId);
-        setIsLeader(result?.isLeader);
         setCurrentSchedules(
-          schedulerList?.filter((s) => dayjs().isSame(s?.startDate, "D"))
+          result?.schedulerList?.filter((s) =>
+            dayjs().isSame(s?.startDate, "D")
+          )
         );
       }
     } catch (e) {
@@ -41,13 +48,38 @@ const SchedulerPage = () => {
         type: "error",
       });
     }
+    closeLoading();
+  };
+
+  const deleteSchedulerFunction = async () => {
+    openLoading();
+    try {
+      const result = await deleteScheduler({ schedulerId: selected });
+      if (result?.isDone) {
+        notification.open({
+          message: "Delete schedule successed",
+          type: "success",
+        });
+        trigger();
+      }
+      setOpenModal(false);
+    } catch (e) {
+      notification.open({
+        message: "Something went wrong",
+        type: "error",
+      });
+    }
+    closeLoading();
+  };
+
+  const onClickDelete = (id?: string) => {
+    setSeleted(id);
+    setOpenModal(true);
   };
 
   useEffect(() => {
     getSchedulerListFuntion();
   }, [reload]);
-
-  const getTime = (value?: string) => dayjs(value).format("HH:mm");
 
   const getListData = (value: Dayjs) => {
     const listData = [
@@ -129,7 +161,8 @@ const SchedulerPage = () => {
     <div className="tablePadding">
       <div
         style={{
-          display: isLeader && projectId ? "flex" : "none",
+          display:
+            userData?.isLeader || userData?.studentId == "0" ? "flex" : "none",
           paddingBottom: 16,
         }}
       >
@@ -144,12 +177,7 @@ const SchedulerPage = () => {
           Add a event
         </Button>
       </div>
-      <CreatePanel
-        ref={CreatePanelRef}
-        trigger={trigger}
-        studentId={userData?.studentId}
-        projectId={projectId}
-      />
+      <CreatePanel ref={CreatePanelRef} trigger={trigger} />
       <div style={{ display: "flex" }}>
         <Calendar
           headerRender={onRenderHeader}
@@ -165,7 +193,11 @@ const SchedulerPage = () => {
         />
         <div className={style.schedulerDetail}>
           {currentSchedules?.map((item) => (
-            <SchedulerCard schedulerItem={item} key={item?.schedulerId} />
+            <SchedulerCard
+              schedulerItem={item}
+              key={item?.schedulerId}
+              deleteFunction={onClickDelete}
+            />
           ))}
           {!currentSchedules?.length && (
             <div style={{ fontWeight: 600, textAlign: "center" }}>
@@ -174,6 +206,17 @@ const SchedulerPage = () => {
             </div>
           )}
         </div>
+        <CustomModal
+          title="Confirm delete schedule"
+          open={openModal}
+          onOk={() => deleteSchedulerFunction()}
+          onCancel={() => setOpenModal(false)}
+        >
+          <div style={{ fontWeight: 600, paddingBottom: 16 }}>
+            Do you want to delete this schedule record, it will be permanently
+            deleted!
+          </div>
+        </CustomModal>
       </div>
     </div>
   );

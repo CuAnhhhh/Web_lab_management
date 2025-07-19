@@ -1,14 +1,17 @@
+import { ExclamationCircleFilled } from "@ant-design/icons";
 import { Button, Form, Input, notification, Radio, Select } from "antd";
 import dayjs from "dayjs";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getStudentRoleList } from "src/PortalPages/api/ConfigurationApi";
+import { getStudentRoleIdList } from "src/PortalPages/api/ConfigurationApi";
 import {
   createStudent,
   getStudentDetailEdit,
 } from "src/PortalPages/api/StudentApi";
 import { Student } from "src/PortalPages/model/StudentModel";
 import style from "./CreateStudent.module.scss";
+import { useLoading } from "src/PortalPages/component/CustomLoading/CustomLoading";
+import CustomModal from "src/PortalPages/component/CustomModal/CustomModal";
 
 const nationality: { label: string; value: number }[] = [
   { label: "Vietnam", value: 101 },
@@ -23,20 +26,28 @@ const studentStatus: { label: string; value: number }[] = [
   { label: "Fourth year", value: 104 },
   { label: "Fifth year", value: 105 },
   { label: "Sixth year", value: 106 },
+  { label: "Master", value: 107 },
+  { label: "Engineer", value: 108 },
+  { label: "Ph.D.", value: 109 },
 ];
 
 const CreateStudent = () => {
   const [form] = Form.useForm();
   const navigate = useNavigate();
-  const userData = JSON.parse(localStorage.getItem("userData") ?? "");
+  const userData = JSON.parse(localStorage.getItem("userData") ?? "null");
   const urlQuery = new URLSearchParams(location.search);
   const studentId = urlQuery.get("studentId") ?? "";
+  const { openLoading, closeLoading } = useLoading();
+  const [sameId, setSameId] = useState<boolean>(false);
   const [roleList, setRoleList] =
     useState<{ label?: string; value: string }[]>();
+  const [onChangeForm, setOnChangeForm] = useState<boolean>(false);
+  const [openModal, setOpenModal] = useState<boolean>(false);
 
   const getListStudentRole = async () => {
     try {
-      const result = await getStudentRoleList();
+      openLoading();
+      const result = await getStudentRoleIdList();
       if (result?.isDone) {
         setRoleList(
           result?.studentRoleList?.map((item) => ({
@@ -51,10 +62,12 @@ const CreateStudent = () => {
         type: "error",
       });
     }
+    closeLoading();
   };
 
   const getStudentDetail = async () => {
     try {
+      openLoading();
       const result = await getStudentDetailEdit(studentId);
       if (result?.isDone) {
         form.setFieldValue("hustID", result?.studentDetail?.hustId);
@@ -73,12 +86,17 @@ const CreateStudent = () => {
         type: "error",
       });
     }
+    closeLoading();
   };
 
   useEffect(() => {
     getListStudentRole();
     getStudentDetail();
   }, []);
+
+  useEffect(() => {
+    sameId && form.validateFields(["hustID"]);
+  }, [sameId]);
 
   const submitForm = async () => {
     const model: Student.StudentListModel = {
@@ -97,6 +115,7 @@ const CreateStudent = () => {
     };
 
     try {
+      openLoading();
       const result = await createStudent(model);
       if (result?.isDone) {
         notification.open({
@@ -104,6 +123,14 @@ const CreateStudent = () => {
           type: "success",
         });
         navigate(`/student/student-list`);
+      } else {
+        notification.open({
+          message: result?.error,
+          type: "error",
+        });
+        if (result?.errorCode == 101) {
+          setSameId(true);
+        }
       }
     } catch (e) {
       notification.open({
@@ -111,12 +138,18 @@ const CreateStudent = () => {
         type: "error",
       });
     }
+    closeLoading();
   };
 
   return (
     <>
       <div className="WLM_FormLayout">
-        <Form form={form} layout="vertical" onFinish={submitForm}>
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={submitForm}
+          onChange={() => setOnChangeForm(true)}
+        >
           <Form.Item
             label="Student name"
             name="studentName"
@@ -127,7 +160,7 @@ const CreateStudent = () => {
               },
             ]}
           >
-            <Input style={{ height: 40 }} />
+            <Input size="large" />
           </Form.Item>
           <Form.Item
             label="Hust ID"
@@ -137,9 +170,23 @@ const CreateStudent = () => {
                 required: true,
                 message: "Please input the Hust ID!",
               },
+              {
+                validator: async () => {
+                  if (sameId) {
+                    return Promise.reject(
+                      new Error("There is a student with the same HUST ID!")
+                    );
+                  }
+                  return Promise.resolve();
+                },
+              },
             ]}
           >
-            <Input style={{ height: 40 }} />
+            <Input
+              size="large"
+              placeholder="Input a hust id"
+              onChange={() => sameId && setSameId(false)}
+            />
           </Form.Item>
           <Form.Item
             label="Phone number"
@@ -151,7 +198,7 @@ const CreateStudent = () => {
               },
             ]}
           >
-            <Input style={{ height: 40 }} />
+            <Input size="large" />
           </Form.Item>
           <Form.Item
             label="Email"
@@ -163,13 +210,18 @@ const CreateStudent = () => {
               },
             ]}
           >
-            <Input style={{ height: 40 }} />
+            <Input size="large" />
           </Form.Item>
           <Form.Item label="Address" name="address">
-            <Input style={{ height: 40 }} />
+            <Input size="large" />
           </Form.Item>
           <Form.Item label="Nationality" name="nationality">
-            <Select options={nationality} style={{ height: 40 }} />
+            <Select
+              options={nationality}
+              size="large"
+              allowClear
+              onChange={() => setOnChangeForm(true)}
+            />
           </Form.Item>
           <Form.Item
             label="Gender"
@@ -186,17 +238,12 @@ const CreateStudent = () => {
               <Radio value={true}>Female</Radio>
             </Radio.Group>
           </Form.Item>
-          <Form.Item
-            label="Student role"
-            name="studentRole"
-            rules={[
-              {
-                required: true,
-                message: "Please select student role!",
-              },
-            ]}
-          >
-            <Select options={roleList} style={{ height: 40 }} />
+          <Form.Item label="Student role" name="studentRole">
+            <Select
+              options={roleList}
+              size="large"
+              onChange={() => setOnChangeForm(true)}
+            />
           </Form.Item>
           <Form.Item
             label="Status"
@@ -208,18 +255,42 @@ const CreateStudent = () => {
               },
             ]}
           >
-            <Select options={studentStatus} style={{ height: 40 }} />
+            <Select
+              options={studentStatus}
+              size="large"
+              onChange={() => setOnChangeForm(true)}
+            />
           </Form.Item>
         </Form>
       </div>
       <div className={style.bottomButton}>
-        <Button onClick={() => navigate(`/student/student-list`)}>
+        <Button
+          onClick={() =>
+            onChangeForm
+              ? setOpenModal(true)
+              : navigate(`/student/student-list`)
+          }
+        >
           Cancel
         </Button>
         <Button onClick={form.submit} type="primary">
           Submit
         </Button>
       </div>
+      <CustomModal
+        title={
+          <div>
+            <ExclamationCircleFilled style={{ color: "#08c" }} /> Discard change
+          </div>
+        }
+        open={openModal}
+        onOk={() => navigate(`/student/student-list`)}
+        onCancel={() => setOpenModal(false)}
+      >
+        <div style={{ fontWeight: 600, paddingBottom: 16 }}>
+          Do you want to cancel create student. All infomation will be removed!
+        </div>
+      </CustomModal>
     </>
   );
 };

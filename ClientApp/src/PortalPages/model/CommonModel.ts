@@ -15,6 +15,9 @@ export namespace Common {
   export interface StudentLoginResponseModel {
     studentId?: string;
     studentRole?: string;
+    projectId?: string;
+    isLeader?: string;
+    collaboration?: boolean;
     isCorrect?: string;
   }
 }

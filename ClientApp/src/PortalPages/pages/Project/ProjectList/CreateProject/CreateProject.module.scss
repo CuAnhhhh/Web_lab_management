@@ -11,3 +11,14 @@
     }
   }
 }
+
+.formList {
+  border: 1px solid #d9d9d9;
+  padding: 16px;
+  margin-bottom: 16px;
+  :global {
+    .ant-form-item-explain-error {
+      color: #ff4d4f;
+    }
+  }
+}

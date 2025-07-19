@@ -4,33 +4,45 @@ import dayjs from "dayjs";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { deleteStudent, getStudentList } from "src/PortalPages/api/StudentApi";
+import { useLoading } from "src/PortalPages/component/CustomLoading/CustomLoading";
 import CustomModal from "src/PortalPages/component/CustomModal/CustomModal";
 import CustomText from "src/PortalPages/component/CustomText/CustomText";
 import CustomTooltip from "src/PortalPages/component/CustomTooltip/CustomTooltip";
 import { Student } from "src/PortalPages/model/StudentModel";
 
 interface IStudentTable {
-  tab?: string;
+  tab: string;
   currentTab?: string;
+  filter?: string;
 }
 
-const StudentTable = ({ tab, currentTab }: IStudentTable) => {
+const StudentTable = ({ tab, currentTab, filter }: IStudentTable) => {
   const navigate = useNavigate();
   const [studentList, setStudentList] = useState<Student.StudentListModel[]>();
   const [studentSelect, setStudentSelect] =
     useState<Student.StudentListModel>();
   const [openModal, setOpenModal] = useState(false);
   const [reload, setReload] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalRecord, setTotalRecord] = useState(0);
+  const { openLoading, closeLoading } = useLoading();
+  const userData = JSON.parse(localStorage.getItem("userData") ?? "null");
 
   useEffect(() => {
     if (tab === currentTab) getStudentListFucntion();
-  }, [currentTab, reload]);
+  }, [currentTab, reload, currentPage, filter]);
 
   const getStudentListFucntion = async () => {
     try {
-      const result = await getStudentList(tab ?? "");
+      openLoading();
+      const result = await getStudentList({
+        status: tab,
+        currentPage: currentPage,
+        studentRole: filter,
+      });
       if (result?.isDone) {
         setStudentList(result?.studentList);
+        setTotalRecord(result?.total ?? 0);
       }
     } catch (e) {
       notification.open({
@@ -38,11 +50,19 @@ const StudentTable = ({ tab, currentTab }: IStudentTable) => {
         type: "error",
       });
     }
+    closeLoading();
   };
 
   const deleteStudentFunction = async () => {
+    const model: Student.DeleteStudentModel = {
+      studentId: studentSelect?.studentId,
+      removedBy: userData?.studentId,
+      removedDate: dayjs().format(),
+    };
+
     try {
-      const result = await deleteStudent(studentSelect?.studentId ?? "");
+      openLoading();
+      const result = await deleteStudent(model);
       if (result?.isDone) {
         notification.open({
           message: "Remove student successed",
@@ -57,6 +77,7 @@ const StudentTable = ({ tab, currentTab }: IStudentTable) => {
         type: "error",
       });
     }
+    closeLoading();
   };
 
   const columns: TableProps<Student.StudentListModel>["columns"] = [
@@ -93,10 +114,10 @@ const StudentTable = ({ tab, currentTab }: IStudentTable) => {
       render: (_, record) => <div>{record?.createdBy ?? "Admin"}</div>,
     },
     {
-      title: "Created Date",
-      key: "createdBy",
+      title: "Days in lab",
+      key: "daysInLab",
       render: (_, record) => (
-        <div>{dayjs(record?.createdDate).format("DD/MMM/YYYY")}</div>
+        <div>{dayjs().diff(dayjs(record?.createdDate), "day")}</div>
       ),
     },
     {
@@ -109,9 +130,7 @@ const StudentTable = ({ tab, currentTab }: IStudentTable) => {
               icon={<EditOutlined />}
               type="text"
               onClick={() =>
-                navigate(
-                  `/student/edit-student/?studentId=${record.studentId}`
-                )
+                navigate(`/student/edit-student/?studentId=${record.studentId}`)
               }
             />
           </CustomTooltip>
@@ -134,13 +153,13 @@ const StudentTable = ({ tab, currentTab }: IStudentTable) => {
     {
       title: "Removed By",
       key: "removedBy",
-      render: (_, record) => <div>{record?.removedBy}</div>,
+      render: (_, record) => <div>{record?.removedBy ?? "Admin"}</div>,
     },
     {
       title: "Removed Date",
       key: "removedDate",
       render: (_, record) => (
-        <div>{dayjs(record?.removedDate).format("DD/MMM/YYYY")}</div>
+        <div>{dayjs(record?.removedDate).format("DD/MMM/YYYY HH:mm")}</div>
       ),
     },
   ];
@@ -154,6 +173,14 @@ const StudentTable = ({ tab, currentTab }: IStudentTable) => {
         dataSource={studentList}
         className="borderTable"
         rowKey={(record) => record.studentId ?? ""}
+        pagination={{
+          current: currentPage,
+          pageSize: 10,
+          total: totalRecord,
+          simple: true,
+          onChange: (page) => setCurrentPage(page),
+        }}
+        scroll={{ x: "max-content" }}
       />
       <CustomModal
         title="Confirm delete student"
@@ -163,7 +190,8 @@ const StudentTable = ({ tab, currentTab }: IStudentTable) => {
       >
         <div style={{ fontWeight: 600, paddingBottom: 16 }}>
           Do you want to remove the below student, it will be permanently
-          removed
+          removed. And if this student are in project, it will be removed from
+          project member list
         </div>
         <CustomText label="Student name">
           {studentSelect?.studentName}
@@ -172,7 +200,7 @@ const StudentTable = ({ tab, currentTab }: IStudentTable) => {
           {studentSelect?.createdBy ?? "Admin"}
         </CustomText>
         <CustomText label="Created at">
-          {dayjs(studentSelect?.createdDate).format("DD/MMM/YYYY")}
+          {dayjs(studentSelect?.createdDate).format("DD/MMM/YYYY HH:mm")}
         </CustomText>
       </CustomModal>
     </>
